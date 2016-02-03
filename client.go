@@ -30,14 +30,14 @@ import (
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 
-	"github.com/anacrolix/torrent/bencode"
-	filePkg "github.com/anacrolix/torrent/data/file"
-	"github.com/anacrolix/torrent/dht"
-	"github.com/anacrolix/torrent/iplist"
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/mse"
-	pp "github.com/anacrolix/torrent/peer_protocol"
-	"github.com/anacrolix/torrent/tracker"
+	"repo.hovitos.engineering/mdye/torrent/bencode"
+	filePkg "repo.hovitos.engineering/mdye/torrent/data/file"
+	"repo.hovitos.engineering/mdye/torrent/dht"
+	"repo.hovitos.engineering/mdye/torrent/iplist"
+	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"repo.hovitos.engineering/mdye/torrent/mse"
+	pp "repo.hovitos.engineering/mdye/torrent/peer_protocol"
+	"repo.hovitos.engineering/mdye/torrent/tracker"
 )
 
 var (
@@ -86,7 +86,7 @@ const (
 	// http://www.bittorrent.org/beps/bep_0005.html
 	defaultExtensionBytes = "\x00\x00\x00\x00\x00\x10\x00\x01"
 
-	socketsPerTorrent     = 80
+	socketsPerTorrent     = 15
 	torrentPeersHighWater = 200
 	torrentPeersLowWater  = 50
 

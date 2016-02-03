@@ -10,7 +10,7 @@ import (
 	"github.com/anacrolix/sync"
 	"github.com/willf/bloom"
 
-	"github.com/anacrolix/torrent/logonce"
+	"repo.hovitos.engineering/mdye/torrent/logonce"
 )
 
 // Maintains state for an ongoing Announce operation. An Announce is started

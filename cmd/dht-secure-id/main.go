@@ -8,7 +8,7 @@ import (
 
 	"github.com/docopt/docopt-go"
 
-	"github.com/anacrolix/torrent/dht"
+	"repo.hovitos.engineering/mdye/torrent/dht"
 )
 
 func main() {

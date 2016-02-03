@@ -3,7 +3,7 @@ package dht
 import (
 	"fmt"
 
-	"github.com/anacrolix/torrent/util"
+	"repo.hovitos.engineering/mdye/torrent/util"
 )
 
 // Msg represents messages that nodes in the network send to each other as specified by the protocol.

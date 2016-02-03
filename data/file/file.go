@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"repo.hovitos.engineering/mdye/torrent/metainfo"
 )
 
 type data struct {

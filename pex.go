@@ -1,6 +1,6 @@
 package torrent
 
-import "github.com/anacrolix/torrent/util"
+import "repo.hovitos.engineering/mdye/torrent/util"
 
 type peerExchangeMessage struct {
 	Added      util.CompactIPv4Peers `bencode:"added"`

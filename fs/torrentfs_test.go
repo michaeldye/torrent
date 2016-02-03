@@ -22,10 +22,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	netContext "golang.org/x/net/context"
 
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/data/mmap"
-	"github.com/anacrolix/torrent/internal/testutil"
-	"github.com/anacrolix/torrent/metainfo"
+	"repo.hovitos.engineering/mdye/torrent"
+	"repo.hovitos.engineering/mdye/torrent/data/mmap"
+	"repo.hovitos.engineering/mdye/torrent/internal/testutil"
+	"repo.hovitos.engineering/mdye/torrent/metainfo"
 )
 
 func init() {

@@ -10,7 +10,7 @@ import (
 	"github.com/anacrolix/missinggo"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/anacrolix/torrent/bencode"
+	"repo.hovitos.engineering/mdye/torrent/bencode"
 )
 
 func test_file(t *testing.T, filename string) {

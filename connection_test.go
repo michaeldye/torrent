@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anacrolix/torrent/peer_protocol"
+	"repo.hovitos.engineering/mdye/torrent/peer_protocol"
 )
 
 func TestCancelRequestOptimized(t *testing.T) {

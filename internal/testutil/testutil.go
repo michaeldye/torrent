@@ -12,7 +12,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"repo.hovitos.engineering/mdye/torrent/metainfo"
 )
 
 const GreetingFileContents = "hello, world\n"

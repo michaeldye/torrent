@@ -18,9 +18,9 @@ import (
 	fusefs "bazil.org/fuse/fs"
 	_ "github.com/anacrolix/envpprof"
 
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/fs"
-	"github.com/anacrolix/torrent/util/dirwatch"
+	"repo.hovitos.engineering/mdye/torrent"
+	"repo.hovitos.engineering/mdye/torrent/fs"
+	"repo.hovitos.engineering/mdye/torrent/util/dirwatch"
 )
 
 var (

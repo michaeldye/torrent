@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/metainfo"
+	"repo.hovitos.engineering/mdye/torrent"
+	"repo.hovitos.engineering/mdye/torrent/metainfo"
 )
 
 func main() {

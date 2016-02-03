@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/anacrolix/torrent/dht"
-	"github.com/anacrolix/torrent/metainfo"
+	"repo.hovitos.engineering/mdye/torrent/dht"
+	"repo.hovitos.engineering/mdye/torrent/metainfo"
 )
 
 var numclients int = 0

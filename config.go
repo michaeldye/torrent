@@ -1,8 +1,8 @@
 package torrent
 
 import (
-	"github.com/anacrolix/torrent/dht"
-	"github.com/anacrolix/torrent/iplist"
+	"repo.hovitos.engineering/mdye/torrent/dht"
+	"repo.hovitos.engineering/mdye/torrent/iplist"
 )
 
 // Override Client defaults.

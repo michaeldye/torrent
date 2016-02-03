@@ -12,8 +12,8 @@ import (
 	"github.com/anacrolix/missinggo"
 	"github.com/go-fsnotify/fsnotify"
 
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/metainfo"
+	"repo.hovitos.engineering/mdye/torrent"
+	"repo.hovitos.engineering/mdye/torrent/metainfo"
 )
 
 type Change uint

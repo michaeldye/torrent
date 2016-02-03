@@ -6,7 +6,7 @@ import (
 
 	"github.com/bradfitz/iter"
 
-	pp "github.com/anacrolix/torrent/peer_protocol"
+	pp "repo.hovitos.engineering/mdye/torrent/peer_protocol"
 )
 
 // Piece priority describes the importance of obtaining a particular piece.

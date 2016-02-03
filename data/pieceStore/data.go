@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"io"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"repo.hovitos.engineering/mdye/torrent/metainfo"
 )
 
 type data struct {

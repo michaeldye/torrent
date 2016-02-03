@@ -9,7 +9,7 @@ import (
 	"github.com/anacrolix/missinggo"
 	"github.com/anacrolix/missinggo/args"
 
-	"github.com/anacrolix/torrent/iplist"
+	"repo.hovitos.engineering/mdye/torrent/iplist"
 )
 
 func main() {

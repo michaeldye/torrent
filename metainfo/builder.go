@@ -10,7 +10,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/anacrolix/torrent/bencode"
+	"repo.hovitos.engineering/mdye/torrent/bencode"
 )
 
 //----------------------------------------------------------------------------
