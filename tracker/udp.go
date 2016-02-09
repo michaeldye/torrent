@@ -20,10 +20,10 @@ import (
 type Action int32
 
 const (
-	Connect Action = iota
-	Announce
-	Scrape
-	Error
+	ActionConnect Action = iota
+	ActionAnnounce
+	ActionScrape
+	ActionError
 
 	connectRequestConnectionId = 0x41727101980
 
@@ -61,10 +61,10 @@ type AnnounceResponseHeader struct {
 }
 
 func init() {
-	RegisterClientScheme("udp", newClient)
+	registerClientScheme("udp", newUDPClient)
 }
 
-func newClient(url *url.URL) Client {
+func newUDPClient(url *url.URL) client {
 	return &udpClient{
 		url: *url,
 	}
@@ -93,6 +93,13 @@ type udpClient struct {
 	url                  url.URL
 }
 
+func (me *udpClient) Close() error {
+	if me.socket != nil {
+		return me.socket.Close()
+	}
+	return nil
+}
+
 func (c *udpClient) URL() string {
 	return c.url.String()
 }
@@ -110,7 +117,7 @@ func (c *udpClient) Announce(req *AnnounceRequest) (res AnnounceResponse, err er
 	// Clearly this limits the request URI to 255 bytes. BEP 41 supports
 	// longer but I'm not fussed.
 	options := append([]byte{optionTypeURLData, byte(len(reqURI))}, []byte(reqURI)...)
-	b, err := c.request(Announce, req, options)
+	b, err := c.request(ActionAnnounce, req, options)
 	if err != nil {
 		return
 	}
@@ -215,7 +222,7 @@ func (c *udpClient) request(action Action, args interface{}, options []byte) (re
 			continue
 		}
 		c.contiguousTimeouts = 0
-		if h.Action == Error {
+		if h.Action == ActionError {
 			err = errors.New(buf.String())
 		}
 		responseBody = buf
@@ -254,7 +261,7 @@ func (c *udpClient) Connect() (err error) {
 		}
 		c.socket = pproffd.WrapNetConn(c.socket)
 	}
-	b, err := c.request(Connect, nil, nil)
+	b, err := c.request(ActionConnect, nil, nil)
 	if err != nil {
 		return
 	}

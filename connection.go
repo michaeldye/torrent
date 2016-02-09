@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/anacrolix/missinggo"
-	"github.com/anacrolix/missinggo/itertools"
 	"github.com/anacrolix/missinggo/prioritybitmap"
 
 	"repo.hovitos.engineering/mdye/torrent/bencode"
@@ -259,6 +259,7 @@ func (c *connection) PeerHasPiece(piece int) bool {
 func (c *connection) Post(msg pp.Message) {
 	select {
 	case c.post <- msg:
+		postedMessageTypes.Add(strconv.FormatInt(int64(msg.Type), 10), 1)
 	case <-c.closed.C():
 	}
 }
@@ -300,9 +301,18 @@ func (c *connection) requestedMetadataPiece(index int) bool {
 	return index < len(c.metadataRequests) && c.metadataRequests[index]
 }
 
+// The actual value to use as the maximum outbound requests.
+func (c *connection) nominalMaxRequests() (ret int) {
+	ret = c.PeerMaxRequests
+	if ret > 64 {
+		ret = 64
+	}
+	return
+}
+
 // Returns true if more requests can be sent.
 func (c *connection) Request(chunk request) bool {
-	if len(c.Requests) >= c.PeerMaxRequests {
+	if len(c.Requests) >= c.nominalMaxRequests() {
 		return false
 	}
 	if !c.PeerHasPiece(int(chunk.Index)) {
@@ -484,6 +494,7 @@ func (conn *connection) writeOptimizer(keepAliveDelay time.Duration) {
 				break
 			}
 			pending.PushBack(pp.Message{Keepalive: true})
+			postedKeepalives.Add(1)
 		case msg, ok := <-conn.post:
 			if !ok {
 				return
@@ -560,8 +571,8 @@ func (c *connection) updateRequests() {
 }
 
 func (c *connection) fillRequests() {
-	itertools.ForIterable(&c.pieceRequestOrder, func(_piece interface{}) (more bool) {
-		return c.requestPiecePendingChunks(_piece.(int))
+	c.pieceRequestOrder.IterTyped(func(piece int) (more bool) {
+		return c.requestPiecePendingChunks(piece)
 	})
 }
 
@@ -574,10 +585,10 @@ func (c *connection) stopRequestingPiece(piece int) {
 }
 
 func (c *connection) updatePiecePriority(piece int) {
-	if !c.PeerHasPiece(piece) {
-		return
-	}
 	tpp := c.t.piecePriority(piece)
+	if !c.PeerHasPiece(piece) {
+		tpp = PiecePriorityNone
+	}
 	if tpp == PiecePriorityNone {
 		c.stopRequestingPiece(piece)
 		return

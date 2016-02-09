@@ -53,6 +53,12 @@ func (t Torrent) PieceStateRuns() []PieceStateRun {
 	return t.torrent.pieceStateRuns()
 }
 
+func (t Torrent) PieceState(piece int) PieceState {
+	t.torrent.stateMu.Lock()
+	defer t.torrent.stateMu.Unlock()
+	return t.torrent.pieceState(piece)
+}
+
 // The number of pieces in the torrent. This requires that the info has been
 // obtained first.
 func (t Torrent) NumPieces() int {
@@ -140,7 +146,11 @@ func (t Torrent) deleteReader(r *Reader) {
 func (t Torrent) DownloadPieces(begin, end int) {
 	t.cl.mu.Lock()
 	defer t.cl.mu.Unlock()
-	for i := begin; i < end; i++ {
-		t.torrent.pendPiece(i, t.cl)
-	}
+	t.torrent.pendPieceRange(begin, end)
+}
+
+func (t Torrent) CancelPieces(begin, end int) {
+	t.cl.mu.Lock()
+	defer t.cl.mu.Unlock()
+	t.torrent.unpendPieceRange(begin, end)
 }

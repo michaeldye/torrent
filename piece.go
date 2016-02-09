@@ -1,10 +1,9 @@
 package torrent
 
 import (
-	"math/rand"
 	"sync"
 
-	"github.com/bradfitz/iter"
+	"github.com/anacrolix/missinggo/bitmap"
 
 	pp "repo.hovitos.engineering/mdye/torrent/peer_protocol"
 )
@@ -29,10 +28,12 @@ const (
 
 type piece struct {
 	// The completed piece SHA1 hash, from the metainfo "pieces" field.
-	Hash pieceSum
+	Hash  pieceSum
+	t     *torrent
+	index int
 	// Chunks we've written to since the last check. The chunk offset and
 	// length can be determined by the request chunkSize in use.
-	DirtyChunks      []bool
+	DirtyChunks      bitmap.Bitmap
 	Hashing          bool
 	QueuedForHash    bool
 	EverHashed       bool
@@ -44,35 +45,28 @@ type piece struct {
 	noPendingWrites    sync.Cond
 }
 
+func (p *piece) pendingChunkIndex(chunkIndex int) bool {
+	return !p.DirtyChunks.Contains(chunkIndex)
+}
+
 func (p *piece) pendingChunk(cs chunkSpec, chunkSize pp.Integer) bool {
-	ci := chunkIndex(cs, chunkSize)
-	if ci >= len(p.DirtyChunks) {
-		return true
-	}
-	return !p.DirtyChunks[ci]
+	return p.pendingChunkIndex(chunkIndex(cs, chunkSize))
+}
+
+func (p *piece) hasDirtyChunks() bool {
+	return p.DirtyChunks.Len() != 0
 }
 
 func (p *piece) numDirtyChunks() (ret int) {
-	for _, dirty := range p.DirtyChunks {
-		if dirty {
-			ret++
-		}
-	}
-	return
+	return p.DirtyChunks.Len()
 }
 
 func (p *piece) unpendChunkIndex(i int) {
-	for i >= len(p.DirtyChunks) {
-		p.DirtyChunks = append(p.DirtyChunks, false)
-	}
-	p.DirtyChunks[i] = true
+	p.DirtyChunks.Add(i)
 }
 
 func (p *piece) pendChunkIndex(i int) {
-	if i >= len(p.DirtyChunks) {
-		return
-	}
-	p.DirtyChunks[i] = false
+	p.DirtyChunks.Remove(i)
 }
 
 func chunkIndexSpec(index int, pieceLength, chunkSize pp.Integer) chunkSpec {
@@ -83,27 +77,13 @@ func chunkIndexSpec(index int, pieceLength, chunkSize pp.Integer) chunkSpec {
 	return ret
 }
 
-func (p *piece) shuffledPendingChunkSpecs(t *torrent, piece int) (css []chunkSpec) {
-	// defer func() {
-	// 	log.Println(piece, css)
-	// }()
-	numPending := t.pieceNumPendingChunks(piece)
-	if numPending == 0 {
-		return
-	}
-	css = make([]chunkSpec, 0, numPending)
-	for ci := range iter.N(t.pieceNumChunks(piece)) {
-		if ci >= len(p.DirtyChunks) || !p.DirtyChunks[ci] {
-			css = append(css, t.chunkIndexSpec(ci, piece))
-		}
-	}
-	if len(css) <= 1 {
-		return
-	}
-	for i := range css {
-		j := rand.Intn(i + 1)
-		css[i], css[j] = css[j], css[i]
-	}
+func (p *piece) numChunks() int {
+	return p.t.pieceNumChunks(p.index)
+}
+
+func (p *piece) undirtiedChunkIndices() (ret bitmap.Bitmap) {
+	ret = p.DirtyChunks.Copy()
+	ret.FlipRange(0, p.numChunks())
 	return
 }
 

@@ -24,10 +24,10 @@ import (
 
 	"github.com/anacrolix/missinggo"
 	. "github.com/anacrolix/missinggo"
+	"github.com/anacrolix/missinggo/bitmap"
 	"github.com/anacrolix/missinggo/pubsub"
 	"github.com/anacrolix/sync"
 	"github.com/anacrolix/utp"
-	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 
 	"repo.hovitos.engineering/mdye/torrent/bencode"
@@ -69,7 +69,10 @@ var (
 	// Number of completed connections to a client we're already connected with.
 	duplicateClientConns       = expvar.NewInt("duplicateClientConns")
 	receivedMessageTypes       = expvar.NewMap("receivedMessageTypes")
+	receivedKeepalives         = expvar.NewInt("receivedKeepalives")
 	supportedExtensionMessages = expvar.NewMap("supportedExtensionMessages")
+	postedMessageTypes         = expvar.NewMap("postedMessageTypes")
+	postedKeepalives           = expvar.NewInt("postedKeepalives")
 )
 
 const (
@@ -1386,27 +1389,23 @@ func (me *Client) connectionLoop(t *torrent, c *connection) error {
 		me.mu.Unlock()
 		var msg pp.Message
 		err := decoder.Decode(&msg)
-		receivedMessageTypes.Add(strconv.FormatInt(int64(msg.Type), 10), 1)
 		me.mu.Lock()
-		c.lastMessageReceived = time.Now()
-		if c.closed.IsSet() {
+		if me.stopped() || c.closed.IsSet() || err == io.EOF {
 			return nil
 		}
 		if err != nil {
-			if me.stopped() || err == io.EOF {
-				return nil
-			}
 			return err
 		}
+		c.lastMessageReceived = time.Now()
 		if msg.Keepalive {
+			receivedKeepalives.Add(1)
 			continue
 		}
+		receivedMessageTypes.Add(strconv.FormatInt(int64(msg.Type), 10), 1)
 		switch msg.Type {
 		case pp.Choke:
 			c.PeerChoked = true
-			for r := range c.Requests {
-				me.connDeleteRequest(t, c, r)
-			}
+			c.Requests = nil
 			// We can then reset our interest.
 			c.updateRequests()
 		case pp.Reject:
@@ -1623,7 +1622,6 @@ func (me *Client) deleteConnection(t *torrent, c *connection) bool {
 func (me *Client) dropConnection(t *torrent, c *connection) {
 	me.event.Broadcast()
 	c.Close()
-
 	if me.deleteConnection(t, c) {
 		me.openNewConns(t)
 	}
@@ -1668,23 +1666,23 @@ func (me *Client) addConnection(t *torrent, c *connection) bool {
 	return true
 }
 
+func (t *torrent) readerPieces() (ret bitmap.Bitmap) {
+	t.forReaderOffsetPieces(func(begin, end int) bool {
+		ret.AddRange(begin, end)
+		return true
+	})
+	return
+}
+
 func (t *torrent) needData() bool {
 	if !t.haveInfo() {
 		return true
 	}
-	for i := t.pendingPieces.IterTyped(); i.Next(); {
-		if t.wantPiece(i.ValueInt()) {
-			i.Stop()
-			return true
-		}
-	}
-	return !t.forReaderOffsetPieces(func(begin, end int) (again bool) {
-		for i := begin; i < end; i++ {
-			if !t.pieceComplete(i) {
-				return false
-			}
-		}
+	if t.pendingPieces.Len() != 0 {
 		return true
+	}
+	return !t.readerPieces().IterTyped(func(piece int) bool {
+		return t.pieceComplete(piece)
 	})
 }
 
@@ -1861,37 +1859,34 @@ func init() {
 	mathRand.Seed(time.Now().Unix())
 }
 
+type trackerTier []string
+
 // The trackers within each tier must be shuffled before use.
 // http://stackoverflow.com/a/12267471/149482
 // http://www.bittorrent.org/beps/bep_0012.html#order-of-processing
-func shuffleTier(tier []tracker.Client) {
+func shuffleTier(tier trackerTier) {
 	for i := range tier {
 		j := mathRand.Intn(i + 1)
 		tier[i], tier[j] = tier[j], tier[i]
 	}
 }
 
-func copyTrackers(base [][]tracker.Client) (copy [][]tracker.Client) {
+func copyTrackers(base []trackerTier) (copy []trackerTier) {
 	for _, tier := range base {
-		copy = append(copy, append([]tracker.Client{}, tier...))
+		copy = append(copy, append(trackerTier(nil), tier...))
 	}
 	return
 }
 
-func mergeTier(tier []tracker.Client, newURLs []string) []tracker.Client {
+func mergeTier(tier trackerTier, newURLs []string) trackerTier {
 nextURL:
 	for _, url := range newURLs {
-		for _, tr := range tier {
-			if tr.URL() == url {
+		for _, trURL := range tier {
+			if trURL == url {
 				continue nextURL
 			}
 		}
-		tr, err := tracker.New(url)
-		if err != nil {
-			// log.Printf("error creating tracker client for %q: %s", url, err)
-			continue
-		}
-		tier = append(tier, tr)
+		tier = append(tier, url)
 	}
 	return tier
 }
@@ -1961,9 +1956,7 @@ func (t Torrent) AddPeers(pp []Peer) error {
 func (t Torrent) DownloadAll() {
 	t.cl.mu.Lock()
 	defer t.cl.mu.Unlock()
-	for i := range iter.N(t.torrent.Info.NumPieces()) {
-		t.torrent.pendPiece(i, t.cl)
-	}
+	t.torrent.pendPieceRange(0, t.torrent.numPieces())
 }
 
 // Returns nil metainfo if it isn't in the cache. Checks that the retrieved
@@ -2207,8 +2200,8 @@ func (cl *Client) announceTorrentDHT(t *torrent, impliedPort bool) {
 	}
 }
 
-func (cl *Client) trackerBlockedUnlocked(tr tracker.Client) (blocked bool, err error) {
-	url_, err := url.Parse(tr.URL())
+func (cl *Client) trackerBlockedUnlocked(trRawURL string) (blocked bool, err error) {
+	url_, err := url.Parse(trRawURL)
 	if err != nil {
 		return
 	}
@@ -2226,7 +2219,7 @@ func (cl *Client) trackerBlockedUnlocked(tr tracker.Client) (blocked bool, err e
 	return
 }
 
-func (cl *Client) announceTorrentSingleTracker(tr tracker.Client, req *tracker.AnnounceRequest, t *torrent) error {
+func (cl *Client) announceTorrentSingleTracker(tr string, req *tracker.AnnounceRequest, t *torrent) error {
 	blocked, err := cl.trackerBlockedUnlocked(tr)
 	if err != nil {
 		return fmt.Errorf("error determining if tracker blocked: %s", err)
@@ -2234,10 +2227,7 @@ func (cl *Client) announceTorrentSingleTracker(tr tracker.Client, req *tracker.A
 	if blocked {
 		return fmt.Errorf("tracker blocked: %s", tr)
 	}
-	if err := tr.Connect(); err != nil {
-		return fmt.Errorf("error connecting: %s", err)
-	}
-	resp, err := tr.Announce(req)
+	resp, err := tracker.Announce(tr, req)
 	if err != nil {
 		return fmt.Errorf("error announcing: %s", err)
 	}
@@ -2258,13 +2248,13 @@ func (cl *Client) announceTorrentSingleTracker(tr tracker.Client, req *tracker.A
 	return nil
 }
 
-func (cl *Client) announceTorrentTrackersFastStart(req *tracker.AnnounceRequest, trackers [][]tracker.Client, t *torrent) (atLeastOne bool) {
+func (cl *Client) announceTorrentTrackersFastStart(req *tracker.AnnounceRequest, trackers []trackerTier, t *torrent) (atLeastOne bool) {
 	oks := make(chan bool)
 	outstanding := 0
 	for _, tier := range trackers {
 		for _, tr := range tier {
 			outstanding++
-			go func(tr tracker.Client) {
+			go func(tr string) {
 				err := cl.announceTorrentSingleTracker(tr, req, t)
 				oks <- err == nil
 			}(tr)
@@ -2501,13 +2491,14 @@ func (me *Client) onFailedPiece(t *torrent, piece int) {
 
 func (me *Client) pieceChanged(t *torrent, piece int) {
 	correct := t.pieceComplete(piece)
-	defer t.publishPieceChange(piece)
 	defer me.event.Broadcast()
 	if correct {
 		me.onCompletedPiece(t, piece)
 	} else {
 		me.onFailedPiece(t, piece)
 	}
+	t.updatePiecePriority(piece)
+	t.publishPieceChange(piece)
 }
 
 func (cl *Client) verifyPiece(t *torrent, piece int) {
@@ -2519,9 +2510,12 @@ func (cl *Client) verifyPiece(t *torrent, piece int) {
 	}
 	p.QueuedForHash = false
 	if t.isClosed() || t.pieceComplete(piece) {
+		t.updatePiecePriority(piece)
+		t.publishPieceChange(piece)
 		return
 	}
 	p.Hashing = true
+	t.publishPieceChange(piece)
 	cl.mu.Unlock()
 	sum := t.hashPiece(piece)
 	cl.mu.Lock()

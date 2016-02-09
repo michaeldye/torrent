@@ -294,8 +294,8 @@ func TestClientTransfer(t *testing.T) {
 	go func() {
 		s := leecherGreeting.torrent.pieceStateChanges.Subscribe()
 		defer s.Close()
-		for i := range s.Values {
-			log.Print(i)
+		for v := range s.Values {
+			log.Printf("%#v", v)
 		}
 		log.Print("finished")
 	}()
@@ -421,8 +421,8 @@ func TestMergingTrackersByAddingSpecs(t *testing.T) {
 	if new {
 		t.FailNow()
 	}
-	assert.EqualValues(t, T.torrent.Trackers[0][0].URL(), "http://a")
-	assert.EqualValues(t, T.torrent.Trackers[1][0].URL(), "udp://b")
+	assert.EqualValues(t, T.torrent.Trackers[0][0], "http://a")
+	assert.EqualValues(t, T.torrent.Trackers[1][0], "udp://b")
 }
 
 type badData struct{}
@@ -535,6 +535,7 @@ func TestResponsive(t *testing.T) {
 		},
 	})
 	reader := leecherTorrent.NewReader()
+	defer reader.Close()
 	reader.SetReadahead(0)
 	reader.SetResponsive()
 	b := make([]byte, 2)
@@ -581,6 +582,7 @@ func TestTorrentDroppedDuringResponsiveRead(t *testing.T) {
 		},
 	})
 	reader := leecherTorrent.NewReader()
+	defer reader.Close()
 	reader.SetReadahead(0)
 	reader.SetResponsive()
 	b := make([]byte, 2)
