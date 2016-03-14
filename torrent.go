@@ -52,11 +52,10 @@ type peersKey struct {
 	Port    int
 }
 
-// Is not aware of Client. Maintains state of torrent for with-in a Client.
+// Maintains state of torrent within a Client.
 type torrent struct {
 	cl *Client
 
-	stateMu sync.Mutex
 	closing chan struct{}
 
 	// Closed when no more network activity is desired. This includes
@@ -104,7 +103,8 @@ type torrent struct {
 
 	readers map[*Reader]struct{}
 
-	pendingPieces bitmap.Bitmap
+	pendingPieces   bitmap.Bitmap
+	completedPieces bitmap.Bitmap
 
 	connPieceInclinationPool sync.Pool
 }
@@ -120,6 +120,10 @@ func (t *torrent) setDisplayName(dn string) {
 }
 
 func (t *torrent) pieceComplete(piece int) bool {
+	return t.completedPieces.Get(piece)
+}
+
+func (t *torrent) pieceCompleteUncached(piece int) bool {
 	// TODO: This is called when setting metadata, and before storage is
 	// assigned, which doesn't seem right.
 	return t.data != nil && t.data.PieceComplete(piece)
@@ -162,8 +166,6 @@ func (t *torrent) worstConns(cl *Client) (wcs *worstConns) {
 }
 
 func (t *torrent) ceaseNetworking() {
-	t.stateMu.Lock()
-	defer t.stateMu.Unlock()
 	select {
 	case <-t.ceasingNetworking:
 		return
@@ -267,12 +269,24 @@ func (t *torrent) setMetadata(md *metainfo.Info, infoBytes []byte) (err error) {
 	return
 }
 
-func (t *torrent) setStorage(td Data) (err error) {
+func (t *torrent) setStorage(td Data) {
 	if t.data != nil {
 		t.data.Close()
 	}
 	t.data = td
-	return
+	for i := range t.Pieces {
+		t.updatePieceCompletion(i)
+		t.Pieces[i].QueuedForHash = true
+	}
+	go func() {
+		for i := range t.Pieces {
+			t.verifyPiece(i)
+		}
+	}()
+}
+
+func (t *torrent) verifyPiece(piece int) {
+	t.cl.verifyPiece(t, piece)
 }
 
 func (t *torrent) haveAllMetadataPieces() bool {
@@ -532,14 +546,10 @@ func (t *torrent) numPieces() int {
 }
 
 func (t *torrent) numPiecesCompleted() (num int) {
-	for i := range iter.N(t.Info.NumPieces()) {
-		if t.pieceComplete(i) {
-			num++
-		}
-	}
-	return
+	return t.completedPieces.Len()
 }
 
+// Safe to call with or without client lock.
 func (t *torrent) isClosed() bool {
 	select {
 	case <-t.closing:
@@ -588,9 +598,11 @@ func (t *torrent) writeChunk(piece int, begin int64, data []byte) (err error) {
 }
 
 func (t *torrent) bitfield() (bf []bool) {
-	for i := range t.Pieces {
-		bf = append(bf, t.havePiece(i))
-	}
+	bf = make([]bool, t.numPieces())
+	t.completedPieces.IterTyped(func(piece int) (again bool) {
+		bf[piece] = true
+		return true
+	})
 	return
 }
 
@@ -643,7 +655,7 @@ type Peer struct {
 }
 
 func (t *torrent) pieceLength(piece int) (len_ pp.Integer) {
-	if piece < 0 || piece > t.Info.NumPieces() {
+	if piece < 0 || piece >= t.Info.NumPieces() {
 		return
 	}
 	if int(piece) == t.numPieces()-1 {
@@ -655,22 +667,20 @@ func (t *torrent) pieceLength(piece int) (len_ pp.Integer) {
 	return
 }
 
-func (t *torrent) hashPiece(piece int) (ps pieceSum) {
+func (t *torrent) hashPiece(piece int) (ret pieceSum) {
 	hash := pieceHash.New()
 	p := &t.Pieces[piece]
 	p.waitNoPendingWrites()
-	pl := t.Info.Piece(int(piece)).Length()
-	n, err := t.data.WriteSectionTo(hash, int64(piece)*t.Info.PieceLength, pl)
-	if err != nil {
-		if err != io.ErrUnexpectedEOF {
-			log.Printf("error hashing piece with %T: %s", t.data, err)
-		}
+	ip := t.Info.Piece(piece)
+	pl := ip.Length()
+	n, err := io.Copy(hash, io.NewSectionReader(t.data, ip.Offset(), pl))
+	if n == pl {
+		missinggo.CopyExact(&ret, hash.Sum(nil))
 		return
 	}
-	if n != pl {
-		panic(fmt.Sprintf("%T: %d != %d", t.data, n, pl))
+	if err != io.ErrUnexpectedEOF {
+		log.Printf("unexpected error hashing piece with %T: %s", t.data, err)
 	}
-	missinggo.CopyExact(ps[:], hash.Sum(nil))
 	return
 }
 
@@ -678,12 +688,7 @@ func (t *torrent) haveAllPieces() bool {
 	if !t.haveInfo() {
 		return false
 	}
-	for i := range t.Pieces {
-		if !t.pieceComplete(i) {
-			return false
-		}
-	}
-	return true
+	return t.completedPieces.Len() == t.numPieces()
 }
 
 func (me *torrent) haveAnyPieces() bool {
@@ -877,10 +882,11 @@ func (t *torrent) updatePiecePriorities() {
 		}
 		return true
 	})
+	t.completedPieces.IterTyped(func(piece int) (more bool) {
+		newPrios[piece] = PiecePriorityNone
+		return true
+	})
 	for i, prio := range newPrios {
-		if t.pieceComplete(i) {
-			prio = PiecePriorityNone
-		}
 		if prio != t.Pieces[i].priority {
 			t.Pieces[i].priority = prio
 			t.piecePriorityChanged(i)
@@ -909,6 +915,8 @@ func (t *torrent) byteRegionPieces(off, size int64) (begin, end int) {
 
 // Returns true if all iterations complete without breaking.
 func (t *torrent) forReaderOffsetPieces(f func(begin, end int) (more bool)) (all bool) {
+	// There's an oppurtunity here to build a map of beginning pieces, and a
+	// bitmap of the rest. I wonder if it's worth the allocation overhead.
 	for r := range t.readers {
 		r.mu.Lock()
 		pos, readahead := r.pos, r.readahead
@@ -970,12 +978,7 @@ func (t *torrent) pendPiece(piece int) {
 }
 
 func (t *torrent) getCompletedPieces() (ret bitmap.Bitmap) {
-	for i := range iter.N(t.numPieces()) {
-		if t.pieceComplete(i) {
-			ret.Add(i)
-		}
-	}
-	return
+	return t.completedPieces.Copy()
 }
 
 func (t *torrent) unpendPieces(unpend *bitmap.Bitmap) {
@@ -1032,4 +1035,25 @@ func (t *torrent) getConnPieceInclination() []int {
 func (t *torrent) putPieceInclination(pi []int) {
 	t.connPieceInclinationPool.Put(pi)
 	pieceInclinationsPut.Add(1)
+}
+
+func (t *torrent) updatePieceCompletion(piece int) {
+	t.completedPieces.Set(piece, t.pieceCompleteUncached(piece))
+}
+
+// Non-blocking read. Client lock is not required.
+func (t *torrent) readAt(b []byte, off int64) (n int, err error) {
+	if off+int64(len(b)) > t.length {
+		b = b[:t.length-off]
+	}
+	for pi := off / t.Info.PieceLength; pi*t.Info.PieceLength < off+int64(len(b)); pi++ {
+		t.Pieces[pi].waitNoPendingWrites()
+	}
+	return t.data.ReadAt(b, off)
+}
+
+func (t *torrent) updateAllPieceCompletions() {
+	for i := range iter.N(t.numPieces()) {
+		t.updatePieceCompletion(i)
+	}
 }
