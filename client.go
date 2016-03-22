@@ -234,7 +234,7 @@ func (cl *Client) WriteStatus(_w io.Writer) {
 		dhtStats := cl.dHT.Stats()
 		fmt.Fprintf(w, "DHT nodes: %d (%d good, %d banned)\n", dhtStats.Nodes, dhtStats.GoodNodes, dhtStats.BadNodes)
 		fmt.Fprintf(w, "DHT Server ID: %x\n", cl.dHT.ID())
-		fmt.Fprintf(w, "DHT port: %d\n", addrPort(cl.dHT.Addr()))
+		fmt.Fprintf(w, "DHT port: %d\n", missinggo.AddrPort(cl.dHT.Addr()))
 		fmt.Fprintf(w, "DHT announces: %d\n", dhtStats.ConfirmedAnnounces)
 		fmt.Fprintf(w, "Outstanding transactions: %d\n", dhtStats.OutstandingTransactions)
 	}
@@ -248,7 +248,7 @@ func (cl *Client) WriteStatus(_w io.Writer) {
 		}
 		fmt.Fprint(w, "\n")
 		if t.haveInfo() {
-			fmt.Fprintf(w, "%f%% of %d bytes", 100*(1-float32(t.bytesLeft())/float32(t.length)), t.length)
+			fmt.Fprintf(w, "%f%% of %d bytes", 100*(1-float64(t.bytesLeft())/float64(t.length)), t.length)
 		} else {
 			w.WriteString("<missing metainfo>")
 		}
@@ -781,6 +781,9 @@ func (me *Client) outgoingConnection(t *torrent, addr string, ps peerSource) {
 	// failure.
 	me.noLongerHalfOpen(t, addr)
 	if err != nil {
+		if me.config.Debug {
+			log.Printf("error establishing outgoing connection: %s", err)
+		}
 		return
 	}
 	if c == nil {
@@ -790,7 +793,9 @@ func (me *Client) outgoingConnection(t *torrent, addr string, ps peerSource) {
 	c.Discovery = ps
 	err = me.runInitiatedHandshookConn(c, t)
 	if err != nil {
-		// log.Print(err)
+		if me.config.Debug {
+			log.Printf("error in established outgoing connection: %s", err)
+		}
 	}
 }
 
@@ -801,7 +806,7 @@ func (cl *Client) incomingPeerPort() int {
 	if listenAddr == nil {
 		return 0
 	}
-	return addrPort(listenAddr)
+	return missinggo.AddrPort(listenAddr)
 }
 
 // Convert a net.Addr to its compact IP representation. Either 4 or 16 bytes
@@ -1147,26 +1152,6 @@ func (me *Client) sendInitialMessages(conn *connection, torrent *torrent) {
 	}
 }
 
-func (me *Client) peerGotPiece(t *torrent, c *connection, piece int) error {
-	if !c.peerHasAll {
-		if t.haveInfo() {
-			if c.PeerPieces == nil {
-				c.PeerPieces = make([]bool, t.numPieces())
-			}
-		} else {
-			for piece >= len(c.PeerPieces) {
-				c.PeerPieces = append(c.PeerPieces, false)
-			}
-		}
-		if piece >= len(c.PeerPieces) {
-			return errors.New("peer got out of range piece index")
-		}
-		c.PeerPieces[piece] = true
-	}
-	c.updatePiecePriority(piece)
-	return nil
-}
-
 func (me *Client) peerUnchoked(torrent *torrent, conn *connection) {
 	conn.updateRequests()
 }
@@ -1287,21 +1272,6 @@ func (cl *Client) gotMetadataExtensionMsg(payload []byte, t *torrent, c *connect
 	return
 }
 
-// Extracts the port as an integer from an address string.
-func addrPort(addr net.Addr) int {
-	return AddrPort(addr)
-}
-
-func (cl *Client) peerHasAll(t *torrent, cn *connection) {
-	cn.peerHasAll = true
-	cn.PeerPieces = nil
-	if t.haveInfo() {
-		for i := 0; i < t.numPieces(); i++ {
-			cl.peerGotPiece(t, cn, i)
-		}
-	}
-}
-
 func (me *Client) upload(t *torrent, c *connection) {
 	if me.config.NoUpload {
 		return
@@ -1405,7 +1375,7 @@ func (me *Client) connectionLoop(t *torrent, c *connection) error {
 			c.PeerInterested = false
 			c.Choke()
 		case pp.Have:
-			me.peerGotPiece(t, c, int(msg.Index))
+			err = c.peerSentHave(int(msg.Index))
 		case pp.Request:
 			if c.Choked {
 				break
@@ -1433,41 +1403,11 @@ func (me *Client) connectionLoop(t *torrent, c *connection) error {
 				unexpectedCancels.Add(1)
 			}
 		case pp.Bitfield:
-			if c.PeerPieces != nil || c.peerHasAll {
-				err = errors.New("received unexpected bitfield")
-				break
-			}
-			if t.haveInfo() {
-				if len(msg.Bitfield) < t.numPieces() {
-					err = errors.New("received invalid bitfield")
-					break
-				}
-				msg.Bitfield = msg.Bitfield[:t.numPieces()]
-			}
-			c.PeerPieces = msg.Bitfield
-			for index, has := range c.PeerPieces {
-				if has {
-					me.peerGotPiece(t, c, index)
-				}
-			}
+			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.HaveAll:
-			if c.PeerPieces != nil || c.peerHasAll {
-				err = errors.New("unexpected have-all")
-				break
-			}
-			me.peerHasAll(t, c)
+			err = c.peerSentHaveAll()
 		case pp.HaveNone:
-			if c.peerHasAll || c.PeerPieces != nil {
-				err = errors.New("unexpected have-none")
-				break
-			}
-			c.PeerPieces = make([]bool, func() int {
-				if t.haveInfo() {
-					return t.numPieces()
-				} else {
-					return 0
-				}
-			}())
+			err = c.peerSentHaveNone()
 		case pp.Piece:
 			me.downloadedChunk(t, c, &msg)
 		case pp.Extended:
@@ -2244,7 +2184,7 @@ func (cl *Client) announceTorrentTrackers(t *torrent) {
 		return
 	}
 	cl.mu.RLock()
-	req.Left = uint64(t.bytesLeft())
+	req.Left = t.bytesLeftAnnounce()
 	trackers := t.Trackers
 	cl.mu.RUnlock()
 	if cl.announceTorrentTrackersFastStart(&req, trackers, t) {
@@ -2253,7 +2193,7 @@ func (cl *Client) announceTorrentTrackers(t *torrent) {
 newAnnounce:
 	for cl.waitWantPeers(t) {
 		cl.mu.RLock()
-		req.Left = uint64(t.bytesLeft())
+		req.Left = t.bytesLeftAnnounce()
 		trackers = t.Trackers
 		cl.mu.RUnlock()
 		numTrackersTried := 0
