@@ -7,7 +7,6 @@ import (
 	"github.com/anacrolix/missinggo/bitmap"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/anacrolix/torrent/peer_protocol"
 	"github.com/michaeldye/torrent/peer_protocol"
 )
 
