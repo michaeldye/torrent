@@ -9,7 +9,7 @@ import (
 
 	"github.com/docopt/docopt-go"
 
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"github.com/michaeldye/torrent/metainfo"
 )
 
 var (

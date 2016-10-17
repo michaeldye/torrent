@@ -5,7 +5,7 @@ import (
 
 	"github.com/anacrolix/missinggo/bitmap"
 
-	pp "repo.hovitos.engineering/mdye/torrent/peer_protocol"
+	pp "github.com/michaeldye/torrent/peer_protocol"
 )
 
 // Piece priority describes the importance of obtaining a particular piece.

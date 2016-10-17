@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"net"
 
-	"repo.hovitos.engineering/mdye/torrent/util"
+	"github.com/michaeldye/torrent/util"
 )
 
 type torrent struct {

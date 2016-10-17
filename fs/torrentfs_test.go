@@ -21,10 +21,10 @@ import (
 	"github.com/stretchr/testify/require"
 	netContext "golang.org/x/net/context"
 
-	"repo.hovitos.engineering/mdye/torrent"
-	"repo.hovitos.engineering/mdye/torrent/data/mmap"
-	"repo.hovitos.engineering/mdye/torrent/internal/testutil"
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"github.com/michaeldye/torrent"
+	"github.com/michaeldye/torrent/data/mmap"
+	"github.com/michaeldye/torrent/internal/testutil"
+	"github.com/michaeldye/torrent/metainfo"
 )
 
 func init() {

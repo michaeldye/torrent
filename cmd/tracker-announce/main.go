@@ -6,9 +6,9 @@ import (
 	"math"
 	"strings"
 
-	"repo.hovitos.engineering/mdye/torrent"
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
-	"repo.hovitos.engineering/mdye/torrent/tracker"
+	"github.com/michaeldye/torrent"
+	"github.com/michaeldye/torrent/metainfo"
+	"github.com/michaeldye/torrent/tracker"
 )
 
 func argSpec(arg string) (ts *torrent.TorrentSpec, err error) {

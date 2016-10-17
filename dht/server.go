@@ -16,9 +16,9 @@ import (
 	"github.com/anacrolix/missinggo"
 	"github.com/tylertreat/BoomFilters"
 
-	"repo.hovitos.engineering/mdye/torrent/bencode"
-	"repo.hovitos.engineering/mdye/torrent/iplist"
-	"repo.hovitos.engineering/mdye/torrent/logonce"
+	"github.com/michaeldye/torrent/bencode"
+	"github.com/michaeldye/torrent/iplist"
+	"github.com/michaeldye/torrent/logonce"
 )
 
 // A Server defines parameters for a DHT node server that is able to

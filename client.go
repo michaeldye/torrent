@@ -31,14 +31,14 @@ import (
 	"github.com/anacrolix/utp"
 	"github.com/edsrzf/mmap-go"
 
-	"repo.hovitos.engineering/mdye/torrent/bencode"
-	filePkg "repo.hovitos.engineering/mdye/torrent/data/file"
-	"repo.hovitos.engineering/mdye/torrent/dht"
-	"repo.hovitos.engineering/mdye/torrent/iplist"
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
-	"repo.hovitos.engineering/mdye/torrent/mse"
-	pp "repo.hovitos.engineering/mdye/torrent/peer_protocol"
-	"repo.hovitos.engineering/mdye/torrent/tracker"
+	"github.com/michaeldye/torrent/bencode"
+	filePkg "github.com/michaeldye/torrent/data/file"
+	"github.com/michaeldye/torrent/dht"
+	"github.com/michaeldye/torrent/iplist"
+	"github.com/michaeldye/torrent/metainfo"
+	"github.com/michaeldye/torrent/mse"
+	pp "github.com/michaeldye/torrent/peer_protocol"
+	"github.com/michaeldye/torrent/tracker"
 )
 
 // I could move a lot of these counters to their own file, but I suspect they

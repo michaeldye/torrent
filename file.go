@@ -3,7 +3,7 @@ package torrent
 import (
 	"strings"
 
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"github.com/michaeldye/torrent/metainfo"
 )
 
 // Provides access to regions of torrent data that correspond to its files.

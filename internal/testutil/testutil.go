@@ -14,7 +14,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"github.com/michaeldye/torrent/metainfo"
 	"github.com/anacrolix/missinggo"
 )
 

@@ -7,8 +7,8 @@ import (
 
 	"github.com/edsrzf/mmap-go"
 
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
-	"repo.hovitos.engineering/mdye/torrent/mmap_span"
+	"github.com/michaeldye/torrent/metainfo"
+	"github.com/michaeldye/torrent/mmap_span"
 )
 
 type torrentData struct {

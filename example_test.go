@@ -5,7 +5,7 @@ import (
 
 	"github.com/anacrolix/missinggo"
 
-	"repo.hovitos.engineering/mdye/torrent"
+	"github.com/michaeldye/torrent"
 )
 
 func Example() {

@@ -20,9 +20,9 @@ import (
 	"github.com/anacrolix/missinggo/pubsub"
 	"github.com/bradfitz/iter"
 
-	"repo.hovitos.engineering/mdye/torrent/bencode"
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
-	pp "repo.hovitos.engineering/mdye/torrent/peer_protocol"
+	"github.com/michaeldye/torrent/bencode"
+	"github.com/michaeldye/torrent/metainfo"
+	pp "github.com/michaeldye/torrent/peer_protocol"
 )
 
 func (t *torrent) chunkIndexSpec(chunkIndex, piece int) chunkSpec {

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"repo.hovitos.engineering/mdye/torrent/bencode"
+	"github.com/michaeldye/torrent/bencode"
 )
 
 type CompactIPv4NodeInfo []NodeInfo

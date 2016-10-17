@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anacrolix/torrent/peer_protocol"
-	"repo.hovitos.engineering/mdye/torrent/peer_protocol"
+	"github.com/michaeldye/torrent/peer_protocol"
 )
 
 func TestCancelRequestOptimized(t *testing.T) {

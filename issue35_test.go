@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"testing"
 
-	"repo.hovitos.engineering/mdye/torrent/dht"
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"github.com/michaeldye/torrent/dht"
+	"github.com/michaeldye/torrent/metainfo"
 )
 
 var numclients int = 0

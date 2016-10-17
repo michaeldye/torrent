@@ -14,7 +14,7 @@ import (
 	"github.com/anacrolix/missinggo"
 	"github.com/anacrolix/missinggo/pproffd"
 
-	"repo.hovitos.engineering/mdye/torrent/util"
+	"github.com/michaeldye/torrent/util"
 )
 
 type Action int32

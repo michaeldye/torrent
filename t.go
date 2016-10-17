@@ -3,7 +3,7 @@ package torrent
 import (
 	"github.com/anacrolix/missinggo/pubsub"
 
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"github.com/michaeldye/torrent/metainfo"
 )
 
 // This file contains Torrent, until I decide where the private, lower-case

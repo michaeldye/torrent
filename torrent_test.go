@@ -3,7 +3,7 @@ package torrent
 import (
 	"testing"
 
-	"repo.hovitos.engineering/mdye/torrent/peer_protocol"
+	"github.com/michaeldye/torrent/peer_protocol"
 )
 
 func r(i, b, l peer_protocol.Integer) request {

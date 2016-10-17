@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 
-	"repo.hovitos.engineering/mdye/torrent/dht"
+	"github.com/michaeldye/torrent/dht"
 )
 
 var (

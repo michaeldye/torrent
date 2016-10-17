@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/anacrolix/envpprof"
 
-	"repo.hovitos.engineering/mdye/torrent/dht"
+	"github.com/michaeldye/torrent/dht"
 )
 
 var (

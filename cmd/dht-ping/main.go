@@ -12,7 +12,7 @@ import (
 	"github.com/anacrolix/tagflag"
 	"github.com/bradfitz/iter"
 
-	"repo.hovitos.engineering/mdye/torrent/dht"
+	"github.com/michaeldye/torrent/dht"
 )
 
 func main() {

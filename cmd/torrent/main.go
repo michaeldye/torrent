@@ -16,9 +16,9 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/gosuri/uiprogress"
 
-	"repo.hovitos.engineering/mdye/torrent"
-	"repo.hovitos.engineering/mdye/torrent/data/mmap"
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"github.com/michaeldye/torrent"
+	"github.com/michaeldye/torrent/data/mmap"
+	"github.com/michaeldye/torrent/metainfo"
 )
 
 func resolvedPeerAddrs(ss []string) (ret []torrent.Peer, err error) {

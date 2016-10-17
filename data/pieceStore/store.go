@@ -16,8 +16,8 @@ import (
 
 	"github.com/bradfitz/iter"
 
-	"repo.hovitos.engineering/mdye/torrent/data/pieceStore/dataBackend"
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"github.com/michaeldye/torrent/data/pieceStore/dataBackend"
+	"github.com/michaeldye/torrent/metainfo"
 )
 
 type store struct {

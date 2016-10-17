@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
-	pp "repo.hovitos.engineering/mdye/torrent/peer_protocol"
+	"github.com/michaeldye/torrent/metainfo"
+	pp "github.com/michaeldye/torrent/peer_protocol"
 )
 
 const (

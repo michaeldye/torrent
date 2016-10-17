@@ -9,7 +9,7 @@ import (
 
 	"github.com/bradfitz/iter"
 
-	"repo.hovitos.engineering/mdye/torrent/bencode"
+	"github.com/michaeldye/torrent/bencode"
 )
 
 // Concatenated 6-byte peer addresses.

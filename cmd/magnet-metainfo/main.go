@@ -7,8 +7,8 @@ import (
 	"os"
 	"sync"
 
-	"repo.hovitos.engineering/mdye/torrent"
-	"repo.hovitos.engineering/mdye/torrent/bencode"
+	"github.com/michaeldye/torrent"
+	"github.com/michaeldye/torrent/bencode"
 )
 
 func main() {

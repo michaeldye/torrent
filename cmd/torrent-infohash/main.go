@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/anacrolix/tagflag"
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"github.com/michaeldye/torrent/metainfo"
 )
 
 func main() {

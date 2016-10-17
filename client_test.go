@@ -25,13 +25,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"repo.hovitos.engineering/mdye/torrent/bencode"
-	"repo.hovitos.engineering/mdye/torrent/data/pieceStore"
-	"repo.hovitos.engineering/mdye/torrent/data/pieceStore/dataBackend/fileCache"
-	"repo.hovitos.engineering/mdye/torrent/dht"
-	"repo.hovitos.engineering/mdye/torrent/internal/testutil"
-	"repo.hovitos.engineering/mdye/torrent/iplist"
-	"repo.hovitos.engineering/mdye/torrent/metainfo"
+	"github.com/michaeldye/torrent/bencode"
+	"github.com/michaeldye/torrent/data/pieceStore"
+	"github.com/michaeldye/torrent/data/pieceStore/dataBackend/fileCache"
+	"github.com/michaeldye/torrent/dht"
+	"github.com/michaeldye/torrent/internal/testutil"
+	"github.com/michaeldye/torrent/iplist"
+	"github.com/michaeldye/torrent/metainfo"
 )
 
 func init() {

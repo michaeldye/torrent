@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"repo.hovitos.engineering/mdye/torrent/iplist"
+	"github.com/michaeldye/torrent/iplist"
 )
 
 const (

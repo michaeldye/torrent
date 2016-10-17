@@ -3,7 +3,7 @@ package dht
 import (
 	"fmt"
 
-	"repo.hovitos.engineering/mdye/torrent/bencode"
+	"github.com/michaeldye/torrent/bencode"
 )
 
 // Represented as a string or list in bencode.

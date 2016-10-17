@@ -18,8 +18,8 @@ import (
 	"github.com/anacrolix/missinggo/prioritybitmap"
 	"github.com/bradfitz/iter"
 
-	"repo.hovitos.engineering/mdye/torrent/bencode"
-	pp "repo.hovitos.engineering/mdye/torrent/peer_protocol"
+	"github.com/michaeldye/torrent/bencode"
+	pp "github.com/michaeldye/torrent/peer_protocol"
 )
 
 var optimizedCancels = expvar.NewInt("optimizedCancels")

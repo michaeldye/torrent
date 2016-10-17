@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strconv"
 
-	"repo.hovitos.engineering/mdye/torrent/bencode"
-	"repo.hovitos.engineering/mdye/torrent/util"
+	"github.com/michaeldye/torrent/bencode"
+	"github.com/michaeldye/torrent/util"
 )
 
 func init() {
